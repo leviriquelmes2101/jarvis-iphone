@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#06111d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JARVIS">
+  <meta name="description" content="Tu asistente personal JARVIS.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <title>JARVIS · Asistente personal</title>
+  <style>
+    :root { color-scheme: dark; --bg:#050b12; --panel:#0b1724; --line:#17374a; --cyan:#64e6ff; --cyan2:#12a8d2; --muted:#8ca8b8; --white:#eafaff; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100svh; background:radial-gradient(ellipse at 50% 20%,#0d2b3b 0%,#07131f 38%,var(--bg) 75%); color:var(--white); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .app { max-width:680px; min-height:100svh; margin:auto; padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 18px); display:flex; flex-direction:column; gap:18px; }
+    header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .brand { letter-spacing:.24em; font-size:13px; font-weight:800; color:var(--cyan); }
+    .sub { color:var(--muted); font-size:11px; margin-top:5px; letter-spacing:.12em; }
+    .status { border:1px solid #1c5265; border-radius:999px; padding:7px 10px; color:#9defff; font-size:10px; letter-spacing:.12em; white-space:nowrap; }
+    .core-wrap { display:grid; place-items:center; padding:14px 0 8px; }
+    .core { width:min(52vw,220px); aspect-ratio:1; border-radius:50%; position:relative; display:grid; place-items:center; }
+    .core:before,.core:after { content:""; position:absolute; inset:0; border-radius:50%; border:1px solid #4eddf7; box-shadow:0 0 25px #13b9e855,inset 0 0 25px #13b9e822; }
+    .core:before { animation:spin 18s linear infinite; border-style:dashed; }
+    .core:after { inset:12%; border-color:#1684a9; animation:pulse 3s ease-in-out infinite; }
+    .core-inner { width:58%; aspect-ratio:1; border-radius:50%; background:radial-gradient(circle,#9ff6ff 0%,#25bfe7 8%,#0b5475 35%,#071927 70%); box-shadow:0 0 32px #29d9ff99,0 0 75px #0bb9e533; z-index:1; }
+    .core.active .core-inner { animation:listen .75s ease-in-out infinite alternate; }
+    .core.active:before { animation-duration:3s; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes pulse { 50% { transform:scale(1.06); opacity:.5; } }
+    @keyframes listen { to { transform:scale(1.13); filter:brightness(1.4); } }
+    .hero { text-align:center; }
+    .hero h1 { font-size:22px; letter-spacing:.16em; margin:0; font-weight:600; }
+    .hero p { color:var(--muted); font-size:13px; margin:8px 0 0; }
+    .panel { background:linear-gradient(145deg,#0b1926eF,#08121deF); border:1px solid var(--line); border-radius:18px; overflow:hidden; }
+    .panel-head { display:flex; align-items:center; justify-content:space-between; padding:13px 15px; border-bottom:1px solid #173244; color:#9ad9e8; font-size:11px; letter-spacing:.15em; }
+    #chat { height:clamp(150px,25svh,240px); overflow:auto; padding:14px; display:flex; flex-direction:column; gap:12px; }
+    .msg { max-width:92%; line-height:1.45; font-size:14px; padding:11px 13px; border-radius:13px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .assistant { align-self:flex-start; background:#102a3a; border:1px solid #1d5267; }
+    .user { align-self:flex-end; background:#123b4c; border:1px solid #22738b; }
+    .label { display:block; font-size:9px; letter-spacing:.13em; color:var(--cyan); margin-bottom:5px; }
+    .input-row { display:flex; gap:8px; padding:12px; border-top:1px solid #173244; }
+    input { min-width:0; flex:1; color:var(--white); background:#06101a; border:1px solid #214256; border-radius:12px; padding:13px 12px; font-size:16px; outline:none; }
+    input:focus { border-color:var(--cyan2); }
+    button { border:1px solid #247b95; border-radius:12px; background:#0b3446; color:#c9f8ff; padding:0 14px; font-size:13px; font-weight:650; cursor:pointer; min-height:44px; }
+    button:active { transform:scale(.98); }
+    .mic { width:100%; min-height:52px; background:linear-gradient(100deg,#0c6179,#0b3a52); letter-spacing:.08em; font-size:14px; }
+    .mic.listening { background:linear-gradient(100deg,#8d243b,#4a1828); border-color:#ff8295; }
+    .quick { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .quick button { background:#091723; border-color:#17394b; text-align:left; min-height:48px; line-height:1.25; }
+    .foot { color:#69899a; font-size:10px; line-height:1.5; text-align:center; }
+    .tiny { font-size:11px; color:var(--muted); }
+    @media (min-height:850px) { .core-wrap { padding:25px 0 14px; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div><div class="brand">J.A.R.V.I.S.</div><div class="sub">ASISTENTE PERSONAL · V1.0</div></div>
+      <div class="status" id="status">SISTEMA EN LÍNEA</div>
+    </header>
+    <section class="core-wrap" aria-label="Estado de JARVIS">
+      <div class="core" id="core"><div class="core-inner"></div></div>
+    </section>
+    <section class="hero">
+      <h1>¿EN QUÉ PUEDO AYUDARTE?</h1>
+      <p>Listo para recibir tus instrucciones.</p>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><span>CANAL DE COMUNICACIÓN</span><span id="mode">TEXTO / VOZ</span></div>
+      <div id="chat" aria-live="polite">
+        <div class="msg assistant"><span class="label">JARVIS</span>Buenos días. Sistemas inicializados. Puedes escribirme o pulsar «Hablar con JARVIS» para probar el reconocimiento de voz.</div>
+      </div>
+      <form id="form" class="input-row">
+        <input id="prompt" autocomplete="off" placeholder="Escribe una instrucción…" aria-label="Escribe una instrucción">
+        <button type="submit">Enviar</button>
+      </form>
+    </section>
+    <button class="mic" id="mic">🎙 HABLAR CON JARVIS</button>
+    <section class="quick" aria-label="Comandos de ejemplo">
+      <button data-prompt="¿Qué puedes hacer?">◈ ¿Qué puedes hacer?</button>
+      <button data-prompt="Dime la hora">◷ Dime la hora</button>
+      <button data-prompt="Ayúdame a organizar mi día">▤ Organizar mi día</button>
+      <button data-prompt="Modo silencio">◌ Modo silencio</button>
+    </section>
+    <div class="foot">VERSIÓN INICIAL · Las conversaciones se guardan en este dispositivo.<br>Esta versión aún no está conectada a un modelo de IA externo.</div>
+  </main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const chat = $('chat'), promptInput = $('prompt'), mic = $('mic'), core = $('core'), status = $('status');
+  const STORE = 'jarvis-chat-v1';
+  let recognition = null, listening = false, silent = false;
+  function addMessage(who, text, save=true) {
+    const node = document.createElement('div');
+    node.className = 'msg ' + (who === 'TÚ' ? 'user' : 'assistant');
+    const label = document.createElement('span'); label.className='label'; label.textContent=who;
+    const body = document.createElement('span'); body.textContent=text;
+    node.append(label, body); chat.appendChild(node); chat.scrollTop=chat.scrollHeight;
+    if (save) {
+      const entries = [...chat.querySelectorAll('.msg')].slice(-40).map(n => ({who:n.classList.contains('user')?'TÚ':'JARVIS', text:n.querySelector('span:last-child').textContent}));
+      try { localStorage.setItem(STORE, JSON.stringify(entries)); } catch(e) {}
+    }
+  }
+  function loadHistory() {
+    try {
+      const saved=JSON.parse(localStorage.getItem(STORE)||'[]');
+      if (saved.length) { chat.innerHTML=''; saved.forEach(m=>addMessage(m.who,m.text,false)); }
+    } catch(e) {}
+  }
+  function speak(text) {
+    if (silent || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang='es-ES'; u.rate=0.96; u.pitch=0.92;
+    const voices=window.speechSynthesis.getVoices();
+    const spanish=voices.find(v=>/^es(-|_)/i.test(v.lang));
+    if (spanish) u.voice=spanish;
+    window.speechSynthesis.speak(u);
+  }
+  function answer(text) {
+    const t=text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if (/\b(hola|buenos dias|buenas tardes|buenas noches)\b/.test(t)) return 'Saludos. Estoy operativo y listo para ayudarte. ¿Qué necesitas?';
+    if (t.includes('que puedes hacer') || t.includes('que sabes hacer')) return 'En esta primera versión puedo conversar mediante reglas sencillas, decirte la hora, ayudarte a estructurar tu día y responder por voz. Todavía no tengo conectado un modelo de IA ni puedo controlar otras aplicaciones del iPhone.';
+    if (t.includes('hora')) return 'La hora local de tu dispositivo es ' + new Intl.DateTimeFormat('es-CO',{hour:'numeric',minute:'2-digit'}).format(new Date()) + '.';
+    if (t.includes('fecha') || t.includes('que dia')) return 'Hoy es ' + new Intl.DateTimeFormat('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(new Date()) + '.';
+    if (t.includes('organizar mi dia') || t.includes('organiza mi dia')) return 'Por supuesto. Dime tus tres prioridades de hoy, cualquier horario fijo y cuánto tiempo libre tienes. Te ayudaré a convertirlo en un plan.';
+    if (t.includes('modo silencio') || t.includes('callate') || t.includes('silencio')) { silent=true; return 'Modo silencio activado. Seguiré respondiendo en pantalla, pero no usaré voz hasta que me lo pidas.'; }
+    if (t.includes('activar voz') || t.includes('habla otra vez') || t.includes('desactiva silencio')) { silent=false; return 'Salida de voz reactivada.'; }
+    if (t.includes('limpiar conversacion') || t.includes('borrar chat')) { localStorage.removeItem(STORE); return 'Puedo iniciar una conversación nueva. Recarga la página para limpiar también el historial visible.'; }
+    if (t.includes('gracias')) return 'Siempre a tu servicio.';
+    return 'He recibido tu instrucción: «' + text + '». En esta versión inicial aún no tengo conectado un modelo de IA para razonar sobre cualquier tema. El siguiente paso será conectar un servicio de IA de forma segura.';
+  }
+  function send(text) {
+    text=(text||'').trim(); if(!text) return;
+    addMessage('TÚ',text); promptInput.value='';
+    const reply=answer(text); setTimeout(()=>{ addMessage('JARVIS',reply); speak(reply); },180);
+  }
+  $('form').addEventListener('submit',e=>{e.preventDefault();send(promptInput.value);});
+  document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>send(b.dataset.prompt)));
+  function stopListening() {
+    listening=false; mic.classList.remove('listening'); mic.textContent='🎙 HABLAR CON JARVIS'; core.classList.remove('active'); status.textContent='SISTEMA EN LÍNEA';
+    try { if(recognition) recognition.stop(); } catch(e) {}
+  }
+  mic.addEventListener('click',()=>{
+    const SR=window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(listening) { stopListening(); return; }
+    if(!SR) { addMessage('JARVIS','Este Safari no ofrece reconocimiento de voz en este momento. Puedes usar el campo de texto; la respuesta hablada seguirá disponible si tu dispositivo admite síntesis de voz.'); return; }
+    try {
+      recognition=new SR(); recognition.lang='es-CO'; recognition.interimResults=false; recognition.maxAlternatives=1;
+      recognition.onstart=()=>{listening=true;mic.classList.add('listening');mic.textContent='■ ESCUCHANDO… TOCA PARA DETENER';core.classList.add('active');status.textContent='ESCUCHANDO';};
+      recognition.onresult=e=>{const transcript=e.results[0][0].transcript; stopListening(); send(transcript);};
+      recognition.onerror=e=>{stopListening();addMessage('JARVIS','No pude reconocer el audio ('+e.error+'). Comprueba el permiso del micrófono e inténtalo otra vez.');};
+      recognition.onend=()=>{if(listening) stopListening();};
+      recognition.start();
+    } catch(e) { stopListening(); addMessage('JARVIS','No pude iniciar el micrófono. Prueba desde Safari mediante una dirección HTTPS y acepta el permiso de micrófono.'); }
+  });
+  loadHistory();
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  }
+})();
+</script>
+</body>
+</html>
